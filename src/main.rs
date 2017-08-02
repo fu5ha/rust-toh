@@ -26,9 +26,11 @@ fn main() {
     for i in (1..n+1).rev() {
         tower1.push(i);
     }
+
     let mut tower2: Vec<u16> = Vec::new();
     let mut tower3: Vec<u16> = Vec::new();
-    let mut state = vec![&mut tower1, &mut tower2, &mut tower3];
+    let mut state: Vec<&mut Vec<u16>> = vec![&mut tower1, &mut tower2, &mut tower3];
+
     render(&mut state,wait);
     toh(n,0,2,1,&mut state,wait);
 }
