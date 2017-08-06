@@ -4,65 +4,101 @@ use std::thread;
 use std::env;
 use std::io;
 
+struct Tower(Vec<u8>);
+
+impl Tower {
+    fn new() -> Tower {
+        Tower(Vec::new())
+    }
+
+    fn place(&mut self, slab: u8) {
+        let &mut Tower(ref mut vec) = self;
+        vec.push(slab);
+    }
+
+    fn remove(&mut self) {
+        let &mut Tower(ref mut vec) = self;
+        vec.pop();
+    }
+
+    fn len(&self) -> usize {
+        let &Tower(ref vec) = self;
+        vec.len()
+    }
+    
+    fn get(&self, index: usize) -> Option<&u8> {
+        let &Tower(ref vec) = self;
+        vec.get(index)
+    }
+}
+
+struct GameState {
+    towers: Vec<Tower>,
+    wait: bool,
+}
+
 fn main() {
 
     let mut args = env::args();
     args.next();
 
-    let n: u16 = match args.next() {
+    let n: u8 = match args.next() {
         Some(arg)   => arg.parse()
             .expect("First argument should be a positive integer number"),
-        None        => 5u16,
+        None        => 5u8,
     };
 
     let wait: bool = match args.next() {
-        Some(arg)   => {
-            if arg == String::from("--wait") {true} else {false}
-        },
+        Some(arg)   => arg == "--wait",
         None        => false,
     };
 
-    let mut tower1: Vec<u16> = Vec::new();
+    let mut tower1 = Tower::new();
     for i in (1..n+1).rev() {
-        tower1.push(i);
+        tower1.place(i);
     }
 
-    let mut tower2: Vec<u16> = Vec::new();
-    let mut tower3: Vec<u16> = Vec::new();
-    let mut state: Vec<&mut Vec<u16>> = vec![&mut tower1, &mut tower2, &mut tower3];
+    let mut state = GameState {
+        towers: vec![tower1, Tower::new(), Tower::new()],
+        wait,
+    };
 
-    render(&mut state,wait);
-    toh(n,0,2,1,&mut state,wait);
+    render(&mut state);
+    toh(n,0,2,1,&mut state);
 }
 
-fn toh(slab: u16, src: u16, dest: u16, aux: u16, state: &mut Vec<&mut Vec<u16>>, wait: bool) {
+fn toh(slab: u8, src: u8, dest: u8, aux: u8, state: &mut GameState) {
     if slab == 1 {
-        do_move(slab, src, dest, state, wait);
+        do_move(slab, src, dest, state);
         return;
     }
-    toh(slab-1, src, aux, dest, state, wait);
-    do_move(slab, src, dest, state, wait);
-    toh(slab-1, aux,dest, src, state, wait);
+    toh(slab-1, src, aux, dest, state);
+    do_move(slab, src, dest, state);
+    toh(slab-1, aux,dest, src, state);
 }
 
-fn do_move(slab: u16, src: u16, dest: u16, state: &mut Vec<&mut Vec<u16>>, wait: bool) {
-    state[src as usize].pop();
-    state[dest as usize].push(slab);
-    render(state,wait);
+fn do_move(slab: u8, src: u8, dest: u8, state: &mut GameState) {
+    {
+        let mut towers = &mut state.towers;
+        towers[src as usize].remove();
+        towers[dest as usize].place(slab);
+    }
+    render(state);
 }
 
-fn render(state: &mut Vec<&mut Vec<u16>>, wait: bool) {
+fn render(state: &mut GameState) {
+    let wait = state.wait;
     print!("{}[2J", 27 as char);
 
-    let height = state.iter().fold(0,
+    let height = state.towers.iter().fold(0,
         |acc, tower| acc + tower.len());
 
     for layer in (0..height+1).rev() {
-        let slabs: Vec<String> = state.iter().map(
-            |tower| match tower.get(layer as usize) {
+        let slabs: Vec<String> = state.towers.iter().map(
+            |tower| match tower.get(layer) {
                 Some(&slab) => {
-                    let buf_string = (0..(((height*2) as u16 - slab*2) / 2))
-                        .fold(String::new(), |acc, _| format!("{}{}",acc," "));
+                    let buf_string = (0..(((height*2) as u8 - slab*2) / 2))
+                        .fold(String::new(), |acc, _| acc + " ");
                     let mut slab_string = format!("{}{}",buf_string,"(");
                     let fill_str = if slab < 10 {slab.to_string()} else {String::from("$")};
                     for _ in 0..(slab*2)-1 {
@@ -81,7 +117,7 @@ fn render(state: &mut Vec<&mut Vec<u16>>, wait: bool) {
     }
     let width = (height*2+1)*3 + 6;
     let barrier = (0..width)
-        .fold(String::from(""), |acc, _| format!("{}{}",acc,"#"));
+        .fold(String::from(""), |acc, _| acc + "#");
     println!("{}", barrier);
 
     if wait {
