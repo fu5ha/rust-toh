@@ -45,7 +45,7 @@ impl GameState {
         self.render();
     }
 
-    fn render(&mut self) {
+    fn render(&self) {
         let wait = self.wait;
         print!("{}[2J", 27 as char);
 
