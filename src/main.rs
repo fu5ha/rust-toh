@@ -12,23 +12,19 @@ impl Tower {
     }
 
     fn place(&mut self, slab: u8) {
-        let &mut Tower(ref mut vec) = self;
-        vec.push(slab);
+        self.0.push(slab);
     }
 
     fn remove(&mut self) {
-        let &mut Tower(ref mut vec) = self;
-        vec.pop();
+        self.0.pop();
     }
 
     fn len(&self) -> usize {
-        let &Tower(ref vec) = self;
-        vec.len()
+        self.0.len()
     }
     
     fn get(&self, index: usize) -> Option<&u8> {
-        let &Tower(ref vec) = self;
-        vec.get(index)
+        self.0.get(index)
     }
 }
 
@@ -95,16 +91,13 @@ fn main() {
     let mut args = env::args();
     args.next();
 
-    let n: u8 = match args.next() {
-        Some(arg)   => arg.parse()
-            .expect("First argument should be a positive integer number"),
-        None        => 5u8,
-    };
+    let n: u8 = if let Some(arg) = args.next() {
+        arg.parse().expect("First argument should be a positive integer number")
+    } else { 5u8 };
 
-    let wait: bool = match args.next() {
-        Some(arg)   => arg == "--wait",
-        None        => false,
-    };
+    let wait: bool = if let Some(arg) = args.next() {
+        arg == "--wait"
+    } else { false };
 
     let mut tower1 = Tower::new();
     for i in (1..n+1).rev() {
@@ -129,5 +122,3 @@ fn toh(slab: u8, src: u8, dest: u8, aux: u8, state: &mut GameState) {
     state.do_move(slab, src, dest);
     toh(slab-1, aux,dest, src, state);
 }
-
-
